@@ -1,9 +1,11 @@
 import os
 import re
-import bs4
 import easyocr
-import requests
-from fake_headers import Headers
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.by import By
+from pyautogui import click, moveTo
+import time
 
 # Обработка ведется при помощи CPU, а не GPU
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
@@ -45,12 +47,44 @@ def filter_text(text: list) -> str:
     else:
         return ', '.join(filtered_text)
 
+# функция для входа вк
+def sign_in_vk():
+    options = webdriver.ChromeOptions()
+    options.add_argument("user-agent=Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:84.0) Gecko/20100101 Firefox/84.0")
+
+    driver = webdriver.Chrome()
+
+    try:
+        driver.get("https://vk.com/")
+        time.sleep(3)
+
+        login = driver.find_element(By.ID, "index_email")
+        login.clear()
+        login.send_keys(input('Логин: '))
+        time.sleep(3)
+
+        driver.find_element(By.CLASS_NAME, "FlatButton--primary").click()
+        time.sleep(3)
+
+        moveTo(716, 677)
+        click(button='left')
+        time.sleep(3)
+
+        password = driver.find_element(By.XPATH, "//input[@name = 'password']")
+        time.sleep(3)
+        password.send_keys(input('Пароль: '))
+        time.sleep(3)
+        password.send_keys(Keys.RETURN)
+
+    except Exception as ex:
+        print(ex)
 
 if __name__ == '__main__':
-    path = '/home/lyumos/imgs'
+    path = input('Путь до тестовой папки')
     for filename in os.listdir(path):
         file_path = os.path.join(path, filename)
         if os.path.isfile(file_path):
             text = recognize_text(file_path)
             song_info = filter_text(text)
+
 
