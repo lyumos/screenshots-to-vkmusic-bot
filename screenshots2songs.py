@@ -3,8 +3,9 @@ import re
 import easyocr
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
-from pyautogui import click, moveTo
+# from pyautogui import click, moveTo
 import time
 
 # Обработка ведется при помощи CPU, а не GPU
@@ -56,35 +57,48 @@ def sign_in_vk():
 
     try:
         driver.get("https://vk.com/")
-        time.sleep(3)
+        time.sleep(1)
 
         login = driver.find_element(By.ID, "index_email")
         login.clear()
-        login.send_keys(input('Логин: '))
-        time.sleep(3)
+        login.send_keys('LOGIN')
+        time.sleep(1)
 
         driver.find_element(By.CLASS_NAME, "FlatButton--primary").click()
-        time.sleep(3)
-
-        moveTo(716, 677)
-        click(button='left')
-        time.sleep(3)
+        time.sleep(1)
 
         password = driver.find_element(By.XPATH, "//input[@name = 'password']")
-        time.sleep(3)
-        password.send_keys(input('Пароль: '))
-        time.sleep(3)
+        password.send_keys('PASSWORD')
         password.send_keys(Keys.RETURN)
+        time.sleep(3)
+
+        button1 = driver.find_element(By.XPATH, "//button[@class='vkuiButton vkuiButton--sz-l vkuiButton--lvl-tertiary vkuiButton--clr-accent vkuiButton--aln-center vkuiButton--sizeY-compact vkuiButton--stretched vkuiTappable vkuiTappable--sizeX-regular vkuiTappable--hasHover vkuiTappable--hasActive vkuiTappable--mouse']")
+        ActionChains(driver).move_to_element(button1).click().perform()
+        time.sleep(3)
+
+        auth_code = driver.find_element(By.XPATH, "//input[@name = 'otp']")
+        code = input('Code: ')
+        auth_code.send_keys(code)
+        auth_code.send_keys(Keys.RETURN)
+        time.sleep(10)
+
+        # ActionChains(driver).key_down(Keys.CONTROL).send_keys('t').key_up(Keys.CONTROL).perform()
+        # time.sleep(3)
+        # driver.switch_to.window(driver.window_handles[-1])
+        # time.sleep(3)
+        # driver.get("MUSIC LINK")
+
 
     except Exception as ex:
         print(ex)
 
 if __name__ == '__main__':
-    path = input('Путь до тестовой папки')
-    for filename in os.listdir(path):
-        file_path = os.path.join(path, filename)
-        if os.path.isfile(file_path):
-            text = recognize_text(file_path)
-            song_info = filter_text(text)
+    # path = input('Путь до тестовой папки')
+    # for filename in os.listdir(path):
+    #     file_path = os.path.join(path, filename)
+    #     if os.path.isfile(file_path):
+    #         text = recognize_text(file_path)
+    #         song_info = filter_text(text)
+    sign_in_vk()
 
 
