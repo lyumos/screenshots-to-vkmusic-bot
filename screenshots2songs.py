@@ -5,7 +5,6 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
-# from pyautogui import click, moveTo
 import time
 
 # Обработка ведется при помощи CPU, а не GPU
@@ -48,6 +47,7 @@ def filter_text(text: list) -> str:
     else:
         return ', '.join(filtered_text)
 
+
 # функция для входа вк
 def sign_in_vk():
     options = webdriver.ChromeOptions()
@@ -72,33 +72,49 @@ def sign_in_vk():
         password.send_keys(Keys.RETURN)
         time.sleep(3)
 
-        button1 = driver.find_element(By.XPATH, "//button[@class='vkuiButton vkuiButton--sz-l vkuiButton--lvl-tertiary vkuiButton--clr-accent vkuiButton--aln-center vkuiButton--sizeY-compact vkuiButton--stretched vkuiTappable vkuiTappable--sizeX-regular vkuiTappable--hasHover vkuiTappable--hasActive vkuiTappable--mouse']")
+        button1 = driver.find_element(By.XPATH,
+                                      "//button[@class='vkuiButton vkuiButton--sz-l vkuiButton--lvl-tertiary vkuiButton--clr-accent vkuiButton--aln-center vkuiButton--sizeY-compact vkuiButton--stretched vkuiTappable vkuiTappable--sizeX-regular vkuiTappable--hasHover vkuiTappable--hasActive vkuiTappable--mouse']")
         ActionChains(driver).move_to_element(button1).click().perform()
         time.sleep(3)
 
         auth_code = driver.find_element(By.XPATH, "//input[@name = 'otp']")
-        code = input('Code: ')
+        code = input('CODE: ')
         auth_code.send_keys(code)
         auth_code.send_keys(Keys.RETURN)
-        time.sleep(10)
-
-        # ActionChains(driver).key_down(Keys.CONTROL).send_keys('t').key_up(Keys.CONTROL).perform()
-        # time.sleep(3)
-        # driver.switch_to.window(driver.window_handles[-1])
-        # time.sleep(3)
-        # driver.get("MUSIC LINK")
-
+        time.sleep(3)
 
     except Exception as ex:
         print(ex)
 
+    return driver
+
+# функция для получения ссылки на первую песню из поиска
+def get_link(driver, song_info):
+    music_link = 'PERSONAL AUDIOS LINK'
+    ActionChains(driver).key_down(Keys.CONTROL).send_keys('t').key_up(Keys.CONTROL).perform()
+    time.sleep(1)
+    driver.switch_to.window(driver.window_handles[-1])
+    time.sleep(1)
+    driver.get(music_link)
+    time.sleep(1)
+    search = driver.find_element(By.XPATH, "//input[@class = 'ui_search_field _field']")
+    search.send_keys(song_info)
+    search.send_keys(Keys.RETURN)
+    time.sleep(1)
+    song = driver.find_elements(By.CLASS_NAME, "audio_row__inner")[42]
+    time.sleep(1)
+    song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
+    return song_link
+
+
 if __name__ == '__main__':
-    # path = input('Путь до тестовой папки')
-    # for filename in os.listdir(path):
-    #     file_path = os.path.join(path, filename)
-    #     if os.path.isfile(file_path):
-    #         text = recognize_text(file_path)
-    #         song_info = filter_text(text)
-    sign_in_vk()
-
-
+    driver = sign_in_vk()
+    path = input('Путь до тестовой папки: ')
+    for filename in os.listdir(path):
+        file_path = os.path.join(path, filename)
+        if os.path.isfile(file_path):
+            text = recognize_text(file_path)
+            song_info = filter_text(text)
+            song_link = get_link(driver, song_info)
+            print(song_link)
+    driver.quit()
