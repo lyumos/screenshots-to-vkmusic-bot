@@ -7,6 +7,7 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 import time
 
+
 # Обработка ведется при помощи CPU, а не GPU
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
@@ -34,7 +35,7 @@ def filter_text(text: list) -> str:
                         lower = sum(1 for c in result if c.islower())
                         upper = sum(1 for c in result if c.isupper())
                         if lower > upper:
-                            new_reg = r'\b\w*(?:music|official)\w*\b'
+                            new_reg = r'\b\w*(?:music|official|Reels|musique)\w*\b'
                             new_res = re.sub(new_reg, '', result).strip()
                             filtered_text.append(new_res)
     if len(filtered_text) == 2:
@@ -49,48 +50,47 @@ def filter_text(text: list) -> str:
 
 
 # функция для входа вк
-def sign_in_vk():
+def sign_in_vk_1():
     options = webdriver.ChromeOptions()
     options.add_argument("user-agent=Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:84.0) Gecko/20100101 Firefox/84.0")
 
     driver = webdriver.Chrome()
 
-    try:
-        driver.get("https://vk.com/")
-        time.sleep(1)
+    driver.get("https://vk.com/")
+    time.sleep(1)
 
-        login = driver.find_element(By.ID, "index_email")
-        login.clear()
-        login.send_keys('LOGIN')
-        time.sleep(1)
+    login = driver.find_element(By.ID, "index_email")
+    login.clear()
+    login.send_keys('LOGIN')
+    time.sleep(1)
 
-        driver.find_element(By.CLASS_NAME, "FlatButton--primary").click()
-        time.sleep(1)
+    driver.find_element(By.CLASS_NAME, "FlatButton--primary").click()
+    time.sleep(1)
 
-        password = driver.find_element(By.XPATH, "//input[@name = 'password']")
-        password.send_keys('PASSWORD')
-        password.send_keys(Keys.RETURN)
-        time.sleep(3)
+    password = driver.find_element(By.XPATH, "//input[@name = 'password']")
+    password.send_keys('PASSWORD')
+    password.send_keys(Keys.RETURN)
+    time.sleep(3)
 
-        button1 = driver.find_element(By.XPATH,
-                                      "//button[@class='vkuiButton vkuiButton--sz-l vkuiButton--lvl-tertiary vkuiButton--clr-accent vkuiButton--aln-center vkuiButton--sizeY-compact vkuiButton--stretched vkuiTappable vkuiTappable--sizeX-regular vkuiTappable--hasHover vkuiTappable--hasActive vkuiTappable--mouse']")
-        ActionChains(driver).move_to_element(button1).click().perform()
-        time.sleep(3)
-
-        auth_code = driver.find_element(By.XPATH, "//input[@name = 'otp']")
-        code = input('CODE: ')
-        auth_code.send_keys(code)
-        auth_code.send_keys(Keys.RETURN)
-        time.sleep(3)
-
-    except Exception as ex:
-        print(ex)
+    button1 = driver.find_element(By.XPATH,
+                                  "//button[@class='vkuiButton vkuiButton--sz-l vkuiButton--lvl-tertiary vkuiButton--clr-accent vkuiButton--aln-center vkuiButton--sizeY-compact vkuiButton--stretched vkuiTappable vkuiTappable--sizeX-regular vkuiTappable--hasHover vkuiTappable--hasActive vkuiTappable--mouse']")
+    ActionChains(driver).move_to_element(button1).click().perform()
+    time.sleep(3)
 
     return driver
 
+
+def sign_in_vk_2(driver, code):
+    auth_code = driver.find_element(By.XPATH, "//input[@name = 'otp']")
+    auth_code.send_keys(code)
+    auth_code.send_keys(Keys.RETURN)
+
+    return driver
+
+
 # функция для получения ссылки на первую песню из поиска
 def get_link(driver, song_info):
-    music_link = 'PERSONAL AUDIOS LINK'
+    music_link = 'PERSONAL MUSIC LINK'
     ActionChains(driver).key_down(Keys.CONTROL).send_keys('t').key_up(Keys.CONTROL).perform()
     time.sleep(1)
     driver.switch_to.window(driver.window_handles[-1])
@@ -107,14 +107,3 @@ def get_link(driver, song_info):
     return song_link
 
 
-if __name__ == '__main__':
-    driver = sign_in_vk()
-    path = input('Путь до тестовой папки: ')
-    for filename in os.listdir(path):
-        file_path = os.path.join(path, filename)
-        if os.path.isfile(file_path):
-            text = recognize_text(file_path)
-            song_info = filter_text(text)
-            song_link = get_link(driver, song_info)
-            print(song_link)
-    driver.quit()

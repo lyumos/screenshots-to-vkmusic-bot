@@ -1,129 +1,90 @@
 import telebot
-import time
-import re
+import os
+import requests
+from telegram import Update
+from telegram.ext import CallbackContext
 from telebot import TeleBot, types
 from telebot.types import Message
-from screenshots2songs import sign_in_vk_1, sign_in_vk_2
+from screenshots2songs import sign_in_vk_1, sign_in_vk_2, recognize_text, filter_text, get_link
 
 token = 'TOKEN'
-permitted_logins = ['LOGIN']
-STATE_ONE = 'ввод логина'
-STATE_TWO = 'проверка логина'
-STATE_THREE = 'авторизация вк 1'
-STATE_FOUR = 'авторизация вк 2'
+permitted_logins = ['LOGINS']
 states = {}
-pattern = r'^\d{6}$'
 
 bot = telebot.TeleBot(token)
-
-
-def set_state(user_id: int, state: str):
-    states[user_id] = state
-
-
-def get_state(user_id: int) -> str:
-    return states.get(user_id)
 
 
 @bot.message_handler(commands=['start'])
 def start(message):
     bot.send_message(message.chat.id, 'Бот создан для личного пользования')
-    time.sleep(1)
-    set_state(message.chat.id, STATE_ONE)
     handle_state_one(message)
 
 
+@bot.message_handler(func=lambda message: True, state=1)
 def handle_state_one(message: Message):
     bot.send_message(message.chat.id, 'Введите свой логин')
-    time.sleep(1)
-    set_state(message.chat.id, STATE_TWO)
+    bot.register_next_step_handler(message, lambda m: handle_state_two(m))
 
 
+@bot.message_handler(func=lambda message: True, state=2)
 def handle_state_two(message: Message):
     login = message.text
     if login in permitted_logins:
-        bot.send_message(message.chat.id, f'Добро пожаловать {login}!')
-        set_state(message.chat.id, STATE_THREE)
+        bot.send_message(message.chat.id, f'Добро пожаловать {login}!\n ')
         handle_state_three(message)
     else:
         bot.send_message(message.chat.id, 'К сожалению, у вас нет доступа')
-        set_state(message.chat.id, STATE_TWO)
-        handle_state_one(message)
+        bot.register_next_step_handler(message, lambda m: handle_state_two(m))
 
 
+@bot.message_handler(func=lambda message: True, state=3)
 def handle_state_three(message: Message):
     bot.send_message(message.chat.id, 'Захожу в ВК..')
     driver = sign_in_vk_1()
+    user_id = message.from_user.id
+    states[user_id] = {'driver': driver}
     bot.send_message(message.chat.id, 'Для продолжения введи код от ВК')
-    set_state(message.chat.id, STATE_FOUR)
-    return driver
-    # bot.send_message(message.chat.id, 'Введите код от ВК')
-    # code = message.text
-    # bot.send_message(message.chat.id, f'Все ок, вот твой код {code}')
-    # set_state(message.chat.id, STATE_ONE)
+    bot.register_next_step_handler(message, lambda m: handle_state_four(m, driver))
 
 
+@bot.message_handler(func=lambda message: True, state=4)
 def handle_state_four(message, driver):
-    bot.send_message(message.chat.id, f'Перешел в состояние 4')
-    # if driver:
-    #     code = message.text
-    #     sign_in_vk_2(driver, code)
-    #     bot.send_message(message.chat.id, f'Отлично!')
-    # else:
-    #     bot.send_message(message.chat.id, f'При открытии ВК что-то пошло не так')
-
-
-@bot.message_handler(regexp=pattern)
-@bot.message_handler()
-def handle_code_message(message: Message):
     code = message.text
-    sign_in_vk_2(driver, code)
-    bot.send_message(message.chat.id, f'Отлично!')
+    driver = sign_in_vk_2(driver, code)
+    bot.send_message(message.chat.id, 'Отлично! Аутентификация завершена')
+    bot.send_message(message.chat.id, 'Пришли скриншот')
+    bot.register_next_step_handler(message, lambda m: handle_state_five(m, driver))
 
 
-@bot.message_handler(func=lambda message: True)
-def message_handler(message: Message):
-    driver = None
-    state = get_state(message.chat.id)
-    if state == STATE_ONE:
-        handle_state_one(message)
-    if state == STATE_TWO:
-        handle_state_two(message)
-    if state == STATE_THREE:
-        driver = handle_state_three(message)
-    if state == STATE_FOUR:
-        handle_state_four(message, driver)
+@bot.message_handler(content_types=['photo'], state = 5)
+def handle_state_five(message, driver):
+    bot.send_message(message.chat.id, 'Скриншот принят')
+    image_id = message.photo[-1].file_id
+    image_info = bot.get_file(image_id)
+    image_path = image_info.file_path
+    image_filename = os.path.basename(image_path)
+    image_bytes = requests.get(f'https://api.telegram.org/file/bot{token}/{image_path}').content
+    save_path = os.path.join('IMGS PATH', image_filename)
+    with open(save_path, 'wb') as f:
+        f.write(image_bytes)
+    abs_path = os.path.abspath(save_path)
+    text = recognize_text(abs_path)
+    song_info = filter_text(text)
+    bot.send_message(message.chat.id, f'Ищу: {song_info}')
+    song_link = get_link(driver, song_info)
+    bot.send_message(message.chat.id, f'Вот ссылка на песню со скриншота {song_link}')
+    bot.send_message(message.chat.id, 'Есть еще скриншоты? (Да/Нет)')
+    bot.register_next_step_handler(message, lambda m: handle_state_six(m, driver))
 
+@bot.message_handler(content_types=['photo'], state = 6)
+def handle_state_six(message, driver):
+    answer = message.text
+    if answer == 'Да':
+        bot.send_message(message.chat.id, 'Пришли скриншот')
+        bot.register_next_step_handler(message, lambda m: handle_state_five(m, driver))
+    else:
+        driver.quit()
+        bot.send_message(message.chat.id, 'Когда захочешь поболтать, пиши /start')
 
-# @bot.message_handler(content_types=['photo'])
-# def handle_screenshot():
-#     pass
-#
-# @bot.message_handler(content_types=['text'])
-# def handle_message(message):
-#     password = message.text
-#     # может сделать проверку по никнейму
-#     if password == 'я есть люмос 149':
-#         bot.send_message(message.chat.id, "Пароль верный!")
-#         bot.send_message(message.chat.id, "Пришлите скриншот")
-#         passed = True
-#         handle_screenshot(passed)
-#     else:
-#         bot.send_message(message.chat.id, "Пароль неправильный, попробуйте еще раз.")
-
-# @bot.message_handler(commands=['help'])
-# def help(msg):
-#     help_msg =  'Бот создан для личного пользования. Введите пароль для продолжения'
-#     bot.send_message(msg.chat.id, help_msg)
-#
-# @bot.message_handler(commands=['start'])
-# def staert(msg):
-#     bot.send_message(msg.chat.id, '')
-#     password = msg.text
-#     if password == correct_password:
-#         bot.send_message(msg.chat.id, "Пароль верный!")
-#     else:
-#         bot.send_message(msg.chat.id, "Пароль неправильный, попробуйте еще раз.")
-
-# отправка запросов серверу ТГ
-bot.polling(none_stop=True)
+if __name__ == '__main__':
+    bot.polling(none_stop=True)
