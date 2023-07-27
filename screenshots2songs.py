@@ -6,6 +6,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 import time
+from private_data import vk_login, vk_password, vk_music_link
 
 
 # Обработка ведется при помощи CPU, а не GPU
@@ -61,14 +62,14 @@ def sign_in_vk_1():
 
     login = driver.find_element(By.ID, "index_email")
     login.clear()
-    login.send_keys('LOGIN')
+    login.send_keys(vk_login)
     time.sleep(1)
 
     driver.find_element(By.CLASS_NAME, "FlatButton--primary").click()
     time.sleep(1)
 
     password = driver.find_element(By.XPATH, "//input[@name = 'password']")
-    password.send_keys('PASSWORD')
+    password.send_keys(vk_password)
     password.send_keys(Keys.RETURN)
     time.sleep(3)
 
@@ -90,12 +91,11 @@ def sign_in_vk_2(driver, code):
 
 # функция для получения ссылки на первую песню из поиска
 def get_link(driver, song_info):
-    music_link = 'PERSONAL MUSIC LINK'
     ActionChains(driver).key_down(Keys.CONTROL).send_keys('t').key_up(Keys.CONTROL).perform()
     time.sleep(1)
     driver.switch_to.window(driver.window_handles[-1])
     time.sleep(1)
-    driver.get(music_link)
+    driver.get(vk_music_link)
     time.sleep(1)
     search = driver.find_element(By.XPATH, "//input[@class = 'ui_search_field _field']")
     search.send_keys(song_info)

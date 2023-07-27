@@ -6,12 +6,11 @@ from telegram.ext import CallbackContext
 from telebot import TeleBot, types
 from telebot.types import Message
 from screenshots2songs import sign_in_vk_1, sign_in_vk_2, recognize_text, filter_text, get_link
+from private_data import bot_token, imgs_path, permitted_logins
 
-token = 'TOKEN'
-permitted_logins = ['LOGINS']
 states = {}
 
-bot = telebot.TeleBot(token)
+bot = telebot.TeleBot(bot_token)
 
 
 @bot.message_handler(commands=['start'])
@@ -63,8 +62,8 @@ def handle_state_five(message, driver):
     image_info = bot.get_file(image_id)
     image_path = image_info.file_path
     image_filename = os.path.basename(image_path)
-    image_bytes = requests.get(f'https://api.telegram.org/file/bot{token}/{image_path}').content
-    save_path = os.path.join('IMGS PATH', image_filename)
+    image_bytes = requests.get(f'https://api.telegram.org/file/bot{bot_token}/{image_path}').content
+    save_path = os.path.join(imgs_path, image_filename)
     with open(save_path, 'wb') as f:
         f.write(image_bytes)
     abs_path = os.path.abspath(save_path)
