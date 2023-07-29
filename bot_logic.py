@@ -78,12 +78,16 @@ def handle_state_five(message, driver):
 @bot.message_handler(content_types=['photo'], state = 6)
 def handle_state_six(message, driver):
     answer = message.text
-    if answer == 'Да':
-        bot.send_message(message.chat.id, 'Пришли скриншот')
-        bot.register_next_step_handler(message, lambda m: handle_state_five(m, driver))
+    if message.content_type == 'text':
+        if answer == 'Да':
+            bot.send_message(message.chat.id, 'Пришли скриншот')
+            bot.register_next_step_handler(message, lambda m: handle_state_five(m, driver))
+        else:
+            driver.quit()
+            bot.send_message(message.chat.id, 'Когда захочешь поболтать, пиши /start')
     else:
-        driver.quit()
-        bot.send_message(message.chat.id, 'Когда захочешь поболтать, пиши /start')
+        handle_state_five(message, driver)
+
 
 if __name__ == '__main__':
     bot.polling(none_stop=True)
