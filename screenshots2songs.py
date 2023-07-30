@@ -101,7 +101,7 @@ def get_link(driver, song_info):
     search.send_keys(song_info)
     search.send_keys(Keys.RETURN)
     time.sleep(1)
-    song = driver.find_elements(By.CLASS_NAME, "audio_row__inner")[42]
+    song = driver.find_elements(By.CLASS_NAME, "audio_row__inner")[30]
     time.sleep(1)
     song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
     return song_link
