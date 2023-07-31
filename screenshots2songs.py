@@ -7,11 +7,28 @@ from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 import time
 from private_data import vk_login, vk_password, vk_music_link
+from PIL import Image
 
 
 # Обработка ведется при помощи CPU, а не GPU
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
+# функция для распознавания типа скриншота
+def define_img_type(img_path: str) -> int:
+    pass
+#     return img_type
+
+# функция для обрезки скриншота
+def crop_img(img_path: str, img_type: int) -> str:
+    crop_pattern = {1: [160, 140, 651, 250], 2: [0, 0, 0 ,0], 3: [0, 0, 0, 0]}
+    crop_coords = crop_pattern[img_type]
+    with Image.open(img_path) as image:
+        cropped_image = image.crop(crop_coords)
+        cropped_image_path: str = img_path.split('.')[0] + '_cropped.' + img_path.split('.')[1]
+        cropped_image.save(cropped_image_path, format='JPEG')
+    return cropped_image_path
+
+# return img_path
 
 # функция распознавания всего текста изображения
 def recognize_text(img_path: str) -> list:
@@ -24,30 +41,18 @@ def recognize_text(img_path: str) -> list:
 def filter_text(text: list) -> str:
     filtered_text = []
     for element in text:
-        if not (re.match(r'\s*\d{1,3}[.,*:]\d{2}', element) or re.match(r'^[а-яА-ЯёЁ\s]+$', element)):
-            if 'LTE' not in element:
-                latin_letters = sum(1 for char in element if char.isalpha() and char.isascii())
-                digits = sum(1 for char in element if char.isdigit())
-                cyrillic_letters = sum(1 for char in element if char.isalpha() and not char.isascii())
-                if latin_letters > sum([digits, cyrillic_letters]):
-                    regex = r'[^a-zA-Z\s]'
-                    result = re.sub(regex, '', element).strip()
-                    if not result[0].islower():
-                        lower = sum(1 for c in result if c.islower())
-                        upper = sum(1 for c in result if c.isupper())
-                        if lower > upper:
-                            new_reg = r'\b\w*(?:music|official|Reels|musique)\w*\b'
-                            new_res = re.sub(new_reg, '', result).strip()
-                            filtered_text.append(new_res)
-    if len(filtered_text) == 2:
-        if filtered_text[0] in filtered_text[1]:
-            return filtered_text[1]
-        elif filtered_text[1] in filtered_text[0]:
-            return filtered_text[0]
+        if 'music' in element:
+            new_element = element.replace('music', '')
+            filtered_text.append(new_element)
+        elif 'official' in element:
+            new_element = element.replace('official', '')
+            filtered_text.append(new_element)
+        elif 'musique' in element:
+            new_element = element.replace('musique', '')
+            filtered_text.append(new_element)
         else:
-            return ', '.join(filtered_text)
-    else:
-        return ', '.join(filtered_text)
+            filtered_text.append(element)
+    return ' '.join(filtered_text)
 
 
 # функция для входа вк
@@ -105,5 +110,3 @@ def get_link(driver, song_info):
     time.sleep(1)
     song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
     return song_link
-
-
