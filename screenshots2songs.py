@@ -20,7 +20,7 @@ def define_img_type(img_path: str) -> int:
 
 # функция для обрезки скриншота
 def crop_img(img_path: str, img_type: int) -> str:
-    crop_pattern = {1: [160, 140, 651, 250], 2: [0, 0, 0 ,0], 3: [0, 0, 0, 0]}
+    crop_pattern = {1: [160, 140, 651, 223], 2: [160, 510, 651, 593], 3: [0, 0, 0, 0]}
     crop_coords = crop_pattern[img_type]
     with Image.open(img_path) as image:
         cropped_image = image.crop(crop_coords)
@@ -32,8 +32,9 @@ def crop_img(img_path: str, img_type: int) -> str:
 
 # функция распознавания всего текста изображения
 def recognize_text(img_path: str) -> list:
-    reader = easyocr.Reader(['en', 'ru'])
+    reader = easyocr.Reader(['en', 'fr', 'pt', 'es'])
     text = reader.readtext(img_path, detail=0, paragraph=True, text_threshold=0.8)
+    print(text)
     return text
 
 
@@ -49,6 +50,9 @@ def filter_text(text: list) -> str:
             filtered_text.append(new_element)
         elif 'musique' in element:
             new_element = element.replace('musique', '')
+            filtered_text.append(new_element)
+        elif '0' in element:
+            new_element = element.replace('0', '')
             filtered_text.append(new_element)
         else:
             filtered_text.append(element)
@@ -97,16 +101,29 @@ def sign_in_vk_2(driver, code):
 # функция для получения ссылки на первую песню из поиска
 def get_link(driver, song_info):
     ActionChains(driver).key_down(Keys.CONTROL).send_keys('t').key_up(Keys.CONTROL).perform()
-    time.sleep(1)
     driver.switch_to.window(driver.window_handles[-1])
     time.sleep(1)
     driver.get(vk_music_link)
-    time.sleep(1)
+    time.sleep(2)
     search = driver.find_element(By.XPATH, "//input[@class = 'ui_search_field _field']")
     search.send_keys(song_info)
     search.send_keys(Keys.RETURN)
-    time.sleep(1)
-    song = driver.find_elements(By.CLASS_NAME, "audio_row__inner")[30]
+    time.sleep(3)
+    songs_list = driver.find_elements(By.CLASS_NAME, "audio_row__inner")
+    first_song_index = 30
+    try:
+        song = songs_list[first_song_index]
+    except IndexError:
+        first_song_index = min(first_song_index, len(songs_list) - 1)
+        song = songs_list[first_song_index]
+    print(f'Индекс: {first_song_index}')
+    print(f'Длина списка песен: {len(songs_list)}')
     time.sleep(1)
     song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
+    if len(song_link) == 0:
+        # while song_link == 0:
+            # last_song_index = len(songs_list) - 1
+        song = songs_list[-1]
+        song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
+        # print(first_song_index)
     return song_link
