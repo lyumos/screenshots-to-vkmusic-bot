@@ -70,22 +70,22 @@ def handle_state_five(message, driver):
     cropped_img_path = crop_img(abs_path, 1)
     text = recognize_text(cropped_img_path)
     song_info = filter_text(text)
-    # bot.send_message(message.chat.id, f'{song_info}')
-    song_link = get_link(driver, song_info)
-    bot.send_message(message.chat.id, f'Вот ссылка на песню со скриншота {song_link}')
-    bot.send_message(message.chat.id, 'Есть еще скриншоты? (Да / Нет)')
+    bot.send_message(message.chat.id, f'"{song_info}"')
+    result = get_link(driver, song_info)
+    bot.send_message(message.chat.id, result)
+    bot.send_message(message.chat.id, 'Если есть еще скриншоты - присылай. Если нет - пиши "Конец"')
     bot.register_next_step_handler(message, lambda m: handle_state_six(m, driver))
 
 @bot.message_handler(content_types=['photo'], state = 6)
 def handle_state_six(message, driver):
     answer = message.text
     if message.content_type == 'text':
-        if answer == 'Да':
-            bot.send_message(message.chat.id, 'Пришли скриншот')
-            bot.register_next_step_handler(message, lambda m: handle_state_five(m, driver))
-        else:
+        if answer == 'Конец':
             driver.quit()
             bot.send_message(message.chat.id, 'Когда захочешь поболтать, пиши /start')
+        else:
+            bot.send_message(message.chat.id, 'Пришли скриншот')
+            bot.register_next_step_handler(message, lambda m: handle_state_five(m, driver))
     else:
         handle_state_five(message, driver)
 

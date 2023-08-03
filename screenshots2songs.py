@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 import time
 from private_data import vk_login, vk_password, vk_music_link
 from PIL import Image
+import random
 
 
 # Обработка ведется при помощи CPU, а не GPU
@@ -34,7 +35,6 @@ def crop_img(img_path: str, img_type: int) -> str:
 def recognize_text(img_path: str) -> list:
     reader = easyocr.Reader(['en', 'fr', 'pt', 'es'])
     text = reader.readtext(img_path, detail=0, paragraph=True, text_threshold=0.8)
-    print(text)
     return text
 
 
@@ -110,20 +110,16 @@ def get_link(driver, song_info):
     search.send_keys(Keys.RETURN)
     time.sleep(3)
     songs_list = driver.find_elements(By.CLASS_NAME, "audio_row__inner")
-    first_song_index = 30
     try:
-        song = songs_list[first_song_index]
-    except IndexError:
-        first_song_index = min(first_song_index, len(songs_list) - 1)
-        song = songs_list[first_song_index]
-    print(f'Индекс: {first_song_index}')
-    print(f'Длина списка песен: {len(songs_list)}')
-    time.sleep(1)
-    song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
-    if len(song_link) == 0:
-        # while song_link == 0:
-            # last_song_index = len(songs_list) - 1
-        song = songs_list[-1]
+        song = songs_list[30]
         song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
-        # print(first_song_index)
-    return song_link
+        if len(song_link) != 0:
+            return f'Вот ссылка на песню со скриншота {song_link}'
+        else:
+            singer_link = song.find_elements(By.TAG_NAME, 'a')[0].get_attribute('href')
+            return f'К сожалению, ссылку на песню выцепить не удалось. Но вот ссылка на исполнителя {singer_link}'
+    except IndexError:
+        song_index = random.randint(0, 29)
+        song = songs_list[song_index]
+        song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
+        return f'Песня не нашлась :( Тем не менее, вдруг эта песня тоже понравится: {song_link}'
