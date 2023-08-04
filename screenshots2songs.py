@@ -1,7 +1,6 @@
 import os
 import re
 from typing import Tuple
-
 import easyocr
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -114,16 +113,13 @@ def get_link(driver, title, author):
         song = songs_list[30]
         song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
         if len(song_link) != 0:
-            return f'Вот ссылка на песню со скриншота {song_link}'
+            return f'Вот ссылка на песню со скриншота: {song_link}'
         else:
             singer_link = song.find_elements(By.TAG_NAME, 'a')[0].get_attribute('href')
-            return f'К сожалению, ссылку на песню выцепить не удалось. Но вот ссылка на исполнителя {singer_link}'
+            return f'К сожалению, ссылку на песню выцепить не удалось. Но вот ссылка на исполнителя: {singer_link}'
     except IndexError:
-        driver.switch_to.window(driver.window_handles[-1])
+        search.clear()
         time.sleep(1)
-        driver.get(vk_music_link)
-        time.sleep(2)
-        search = driver.find_element(By.XPATH, "//input[@class = 'ui_search_field _field']")
         song_info = title
         search.send_keys(song_info)
         search.send_keys(Keys.RETURN)
