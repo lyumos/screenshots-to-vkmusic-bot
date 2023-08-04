@@ -22,7 +22,9 @@ def define_img_type(img_path: str) -> int:
 
 # функция для обрезки скриншота
 def crop_img(img_path: str, img_type: int) -> tuple[str, str]:
-    crop_pattern = {1: [[160, 140, 651, 179], [160, 180, 651, 223]], 2: [160, 510, 651, 593], 3: [0, 0, 0, 0]}
+    crop_pattern = {1: [[160, 140, 651, 179], [160, 180, 651, 223]],
+                    2: [[160, 510, 651, 549], [160, 550, 651, 593]],
+                    3: [0, 0, 0, 0]}
     crop_coords = crop_pattern[img_type]
     with Image.open(img_path) as image:
         title_image = image.crop(crop_coords[0])
