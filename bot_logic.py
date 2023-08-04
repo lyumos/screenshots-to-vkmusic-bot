@@ -5,7 +5,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 from telebot import TeleBot, types
 from telebot.types import Message
-from screenshots2songs import sign_in_vk_1, sign_in_vk_2, recognize_text, filter_text, get_link, crop_img
+from screenshots2songs import sign_in_vk_1, sign_in_vk_2, recognize_text, get_link, crop_img
 from private_data import bot_token, imgs_path, permitted_logins
 
 states = {}
@@ -67,11 +67,12 @@ def handle_state_five(message, driver):
     with open(save_path, 'wb') as f:
         f.write(image_bytes)
     abs_path = os.path.abspath(save_path)
-    cropped_img_path = crop_img(abs_path, 1)
-    text = recognize_text(cropped_img_path)
-    song_info = filter_text(text)
+    title_img_path, author_img_path = crop_img(abs_path, 1)
+    title = recognize_text(title_img_path)
+    author = recognize_text(author_img_path)
+    song_info = title + ' ' + author
     bot.send_message(message.chat.id, f'"{song_info}"')
-    result = get_link(driver, song_info)
+    result = get_link(driver, title, author)
     bot.send_message(message.chat.id, result)
     bot.send_message(message.chat.id, 'Если есть еще скриншоты - присылай. Если нет - пиши "Конец"')
     bot.register_next_step_handler(message, lambda m: handle_state_six(m, driver))

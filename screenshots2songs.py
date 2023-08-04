@@ -1,5 +1,7 @@
 import os
 import re
+from typing import Tuple
+
 import easyocr
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -20,26 +22,23 @@ def define_img_type(img_path: str) -> int:
 #     return img_type
 
 # функция для обрезки скриншота
-def crop_img(img_path: str, img_type: int) -> str:
-    crop_pattern = {1: [160, 140, 651, 223], 2: [160, 510, 651, 593], 3: [0, 0, 0, 0]}
+def crop_img(img_path: str, img_type: int) -> tuple[str, str]:
+    crop_pattern = {1: [[160, 140, 651, 179], [160, 180, 651, 223]], 2: [160, 510, 651, 593], 3: [0, 0, 0, 0]}
     crop_coords = crop_pattern[img_type]
     with Image.open(img_path) as image:
-        cropped_image = image.crop(crop_coords)
-        cropped_image_path: str = img_path.split('.')[0] + '_cropped.' + img_path.split('.')[1]
-        cropped_image.save(cropped_image_path, format='JPEG')
-    return cropped_image_path
+        title_image = image.crop(crop_coords[0])
+        author_image = image.crop(crop_coords[1])
+        title_image_path: str = img_path.split('.')[0] + 'title_cropped.' + img_path.split('.')[1]
+        author_image_path: str = img_path.split('.')[0] + 'author_cropped.' + img_path.split('.')[1]
+        title_image.save(title_image_path, format='JPEG')
+        author_image.save(author_image_path, format='JPEG')
+    return title_image_path, author_image_path
 
-# return img_path
 
-# функция распознавания всего текста изображения
-def recognize_text(img_path: str) -> list:
+# функция распознования текста и его фильтрации
+def recognize_text(img_path: str) -> str:
     reader = easyocr.Reader(['en', 'fr', 'pt', 'es'])
     text = reader.readtext(img_path, detail=0, paragraph=True, text_threshold=0.8)
-    return text
-
-
-# функция фильтрафии всего текста
-def filter_text(text: list) -> str:
     filtered_text = []
     for element in text:
         if 'music' in element:
@@ -99,18 +98,19 @@ def sign_in_vk_2(driver, code):
 
 
 # функция для получения ссылки на первую песню из поиска
-def get_link(driver, song_info):
+def get_link(driver, title, author):
     ActionChains(driver).key_down(Keys.CONTROL).send_keys('t').key_up(Keys.CONTROL).perform()
     driver.switch_to.window(driver.window_handles[-1])
     time.sleep(1)
     driver.get(vk_music_link)
     time.sleep(2)
     search = driver.find_element(By.XPATH, "//input[@class = 'ui_search_field _field']")
+    song_info = title + ' ' + author
     search.send_keys(song_info)
     search.send_keys(Keys.RETURN)
     time.sleep(3)
-    songs_list = driver.find_elements(By.CLASS_NAME, "audio_row__inner")
     try:
+        songs_list = driver.find_elements(By.CLASS_NAME, "audio_row__inner")
         song = songs_list[30]
         song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
         if len(song_link) != 0:
@@ -119,7 +119,16 @@ def get_link(driver, song_info):
             singer_link = song.find_elements(By.TAG_NAME, 'a')[0].get_attribute('href')
             return f'К сожалению, ссылку на песню выцепить не удалось. Но вот ссылка на исполнителя {singer_link}'
     except IndexError:
-        song_index = random.randint(0, 29)
-        song = songs_list[song_index]
+        driver.switch_to.window(driver.window_handles[-1])
+        time.sleep(1)
+        driver.get(vk_music_link)
+        time.sleep(2)
+        search = driver.find_element(By.XPATH, "//input[@class = 'ui_search_field _field']")
+        song_info = title
+        search.send_keys(song_info)
+        search.send_keys(Keys.RETURN)
+        time.sleep(3)
+        songs_list = driver.find_elements(By.CLASS_NAME, "audio_row__inner")
+        song = songs_list[30]
         song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
-        return f'Песня не нашлась :( Тем не менее, вдруг эта песня тоже понравится: {song_link}'
+        return f'Возможно, это она: {song_link}'
