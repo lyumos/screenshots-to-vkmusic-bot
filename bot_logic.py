@@ -67,12 +67,18 @@ def handle_state_five(message, driver):
     with open(save_path, 'wb') as f:
         f.write(image_bytes)
     abs_path = os.path.abspath(save_path)
-    title_img_path, author_img_path = crop_img(abs_path, 1)
-    title = recognize_text(title_img_path)
-    author = recognize_text(author_img_path)
-    song_info = title + ' ' + author
-    bot.send_message(message.chat.id, f'"{song_info}"')
-    result = get_link(driver, title, author)
+    img_type = 4
+    if img_type == 4:
+        song_info = recognize_text(abs_path, img_type)
+        bot.send_message(message.chat.id, f'"{song_info}"')
+        result = get_link(driver, song_info, '')
+    else:
+        title_img_path, author_img_path = crop_img(abs_path, img_type)
+        title = recognize_text(title_img_path, img_type)
+        author = recognize_text(author_img_path, img_type)
+        song_info = title + ' ' + author
+        bot.send_message(message.chat.id, f'"{song_info}"')
+        result = get_link(driver, title, author)
     bot.send_message(message.chat.id, result)
     bot.send_message(message.chat.id, 'Если есть еще скриншоты - присылай. Если нет - пиши "Конец"')
     bot.register_next_step_handler(message, lambda m: handle_state_six(m, driver))

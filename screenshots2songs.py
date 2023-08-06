@@ -29,6 +29,9 @@ def crop_img(img_path: str, img_type: int) -> tuple[str, str]:
     with Image.open(img_path) as image:
         title_image = image.crop(crop_coords[0])
         author_image = image.crop(crop_coords[1])
+# new_dir_path = img_path.split('.')[0][0: -3] + '/' + img_path.split('.')[0][-1]
+# author_image_path: str = new_dir_path.split('.')[0] + 'author_cropped.' + img_path.split('.')[1]
+# title_image_path: str = new_dir_path.split('.')[0] + 'title_cropped.' + img_path.split('.')[1]
         title_image_path: str = img_path.split('.')[0] + 'title_cropped.' + img_path.split('.')[1]
         author_image_path: str = img_path.split('.')[0] + 'author_cropped.' + img_path.split('.')[1]
         title_image.save(title_image_path, format='JPEG')
@@ -37,29 +40,60 @@ def crop_img(img_path: str, img_type: int) -> tuple[str, str]:
 
 
 # функция распознования текста и его фильтрации
-def recognize_text(img_path: str) -> str:
-    reader = easyocr.Reader(['en', 'fr', 'pt', 'es'])
-    text = reader.readtext(img_path, detail=0, paragraph=True, text_threshold=0.8)
-    filtered_text = []
-    for element in text:
-        if 'music' in element:
-            new_element = element.replace('music', '')
-            filtered_text.append(new_element)
-        elif 'official' in element:
-            new_element = element.replace('official', '')
-            filtered_text.append(new_element)
-        elif 'musique' in element:
-            new_element = element.replace('musique', '')
-            filtered_text.append(new_element)
-        elif '0' in element:
-            new_element = element.replace('0', '')
-            filtered_text.append(new_element)
-        else:
-            filtered_text.append(element)
-    return ' '.join(filtered_text)
+def recognize_text(img_path: str, img_type: int) -> str:
+    if img_type == 4:
+        print('Я тут!')
+        reader = easyocr.Reader(['en', 'ru'])
+        text = reader.readtext(img_path, detail=0, paragraph=True, text_threshold=0.8)
+        filtered_text = []
+        for element in text:
+            print("I'm here!")
+            latin_letters = sum(1 for char in element if char.isalpha() and char.isascii())
+            cyrillic_letters = sum(1 for char in element if char.isalpha() and not char.isascii())
+            if latin_letters > cyrillic_letters and 'Ответить' in element:
+                print("I'm here![2]")
+                for i, item in enumerate(element):
+                    if item == ':' or item == '.':
+                        element = element[i+2:]
+                        break
+                for i, item in enumerate(element):
+                    if item == 'Н' or item == 'О':
+                        element = element[:i-1]
+                        break
+                if '_' in element or '@' in element:
+                    print("I'm here![3]")
+                    cyrillic_letters = sum(1 for char in element if char.isalpha() and not char.isascii())
+                    if cyrillic_letters == 0:
+                        print("I'm here![4]")
+                        for i, item in enumerate(element):
+                            if item == ' ':
+                                element = element[i+1:]
+                                break
+                        filtered_text.append(element)
+        return ' '.join(filtered_text)
+    else:
+        reader = easyocr.Reader(['en', 'fr', 'pt', 'es'])
+        text = reader.readtext(img_path, detail=0, paragraph=True, text_threshold=0.8)
+        filtered_text = []
+        for element in text:
+            if 'music' in element:
+                new_element = element.replace('music', '')
+                filtered_text.append(new_element)
+            elif 'official' in element:
+                new_element = element.replace('official', '')
+                filtered_text.append(new_element)
+            elif 'musique' in element:
+                new_element = element.replace('musique', '')
+                filtered_text.append(new_element)
+            elif '0' in element:
+                new_element = element.replace('0', '')
+                filtered_text.append(new_element)
+            else:
+                filtered_text.append(element)
+        return ' '.join(filtered_text)
 
 
-# функция для входа вк
+# функция для входа вк до ввода кода
 def sign_in_vk_1():
     options = webdriver.ChromeOptions()
     options.add_argument("user-agent=Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:84.0) Gecko/20100101 Firefox/84.0")
@@ -89,7 +123,7 @@ def sign_in_vk_1():
 
     return driver
 
-
+# функция для ввода кода
 def sign_in_vk_2(driver, code):
     auth_code = driver.find_element(By.XPATH, "//input[@name = 'otp']")
     auth_code.send_keys(code)
@@ -130,3 +164,13 @@ def get_link(driver, title, author):
         song = songs_list[30]
         song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
         return f'Возможно, это она: {song_link}'
+
+# для тестирования
+if __name__ == '__main__':
+    path = '/home/lyumos/imgs4'
+    for filename in os.listdir(path):
+        file_path = os.path.join(path, filename)
+        if os.path.isfile(file_path):
+            title_img_path, author_img = crop_img(file_path, 4)
+            title = recognize_text(title_img_path, 4)
+            print(title)
