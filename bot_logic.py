@@ -5,7 +5,7 @@ from telegram import Update
 from telegram.ext import CallbackContext
 from telebot import TeleBot, types
 from telebot.types import Message
-from screenshots2songs import sign_in_vk_1, sign_in_vk_2, recognize_text, get_link, crop_img
+from screenshots2songs import sign_in_vk_1, sign_in_vk_2, recognize_text, get_link, crop_img, define_img_type
 from private_data import bot_token, imgs_path, permitted_logins
 
 states = {}
@@ -67,7 +67,7 @@ def handle_state_five(message, driver):
     with open(save_path, 'wb') as f:
         f.write(image_bytes)
     abs_path = os.path.abspath(save_path)
-    img_type = 4
+    img_type = define_img_type(abs_path)
     if img_type == 4:
         song_info = recognize_text(abs_path, img_type)
         bot.send_message(message.chat.id, f'"{song_info}"')

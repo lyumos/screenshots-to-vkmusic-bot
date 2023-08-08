@@ -1,6 +1,6 @@
 import os
 import re
-from typing import Tuple
+from typing import Tuple, List
 import easyocr
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
@@ -10,28 +10,38 @@ import time
 from private_data import vk_login, vk_password, vk_music_link
 from PIL import Image
 import random
-
+from skimage.io import imread
+from skimage.transform import resize
+import joblib
 
 # Обработка ведется при помощи CPU, а не GPU
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
+
 # функция для распознавания типа скриншота
 def define_img_type(img_path: str) -> int:
-    pass
-#     return img_type
+    categories = [1, 2, 3, 4]
+    img_model = joblib.load('img_model.p')
+    img = imread(img_path)
+    img_resized = resize(img, (150, 150, 3))
+    l = [img_resized.flatten()]
+    img_type = categories[img_model.predict(l)[0]]
+    print(img_type)
+    return img_type
+
 
 # функция для обрезки скриншота
 def crop_img(img_path: str, img_type: int) -> tuple[str, str]:
-    crop_pattern = {1: [[160, 140, 651, 179], [160, 180, 651, 223]], # 1 - аудио рилс
-                    2: [[160, 510, 651, 549], [160, 550, 651, 593]], # 2 - аудио из историй
-                    3: [[0, 650, 1242, 880], [0, 881, 1242, 931]]} # 3 - скриншоты приложения шазам
+    crop_pattern = {1: [[160, 140, 651, 179], [160, 180, 651, 223]],  # 1 - аудио рилс
+                    2: [[160, 510, 651, 549], [160, 550, 651, 593]],  # 2 - аудио из историй
+                    3: [[0, 650, 1242, 880], [0, 881, 1242, 931]]}  # 3 - скриншоты приложения шазам
     crop_coords = crop_pattern[img_type]
     with Image.open(img_path) as image:
         title_image = image.crop(crop_coords[0])
         author_image = image.crop(crop_coords[1])
-# new_dir_path = img_path.split('.')[0][0: -3] + '/' + img_path.split('.')[0][-1]
-# author_image_path: str = new_dir_path.split('.')[0] + 'author_cropped.' + img_path.split('.')[1]
-# title_image_path: str = new_dir_path.split('.')[0] + 'title_cropped.' + img_path.split('.')[1]
+        # new_dir_path = img_path.split('.')[0][0: -3] + '/' + img_path.split('.')[0][-1]
+        # author_image_path: str = new_dir_path.split('.')[0] + 'author_cropped.' + img_path.split('.')[1]
+        # title_image_path: str = new_dir_path.split('.')[0] + 'title_cropped.' + img_path.split('.')[1]
         title_image_path: str = img_path.split('.')[0] + 'title_cropped.' + img_path.split('.')[1]
         author_image_path: str = img_path.split('.')[0] + 'author_cropped.' + img_path.split('.')[1]
         title_image.save(title_image_path, format='JPEG')
@@ -42,32 +52,27 @@ def crop_img(img_path: str, img_type: int) -> tuple[str, str]:
 # функция распознования текста и его фильтрации
 def recognize_text(img_path: str, img_type: int) -> str:
     if img_type == 4:
-        print('Я тут!')
         reader = easyocr.Reader(['en', 'ru'])
         text = reader.readtext(img_path, detail=0, paragraph=True, text_threshold=0.8)
         filtered_text = []
         for element in text:
-            print("I'm here!")
             latin_letters = sum(1 for char in element if char.isalpha() and char.isascii())
             cyrillic_letters = sum(1 for char in element if char.isalpha() and not char.isascii())
             if latin_letters > cyrillic_letters and 'Ответить' in element:
-                print("I'm here![2]")
                 for i, item in enumerate(element):
                     if item == ':' or item == '.':
-                        element = element[i+2:]
+                        element = element[i + 2:]
                         break
                 for i, item in enumerate(element):
                     if item == 'Н' or item == 'О':
-                        element = element[:i-1]
+                        element = element[:i - 1]
                         break
                 if '_' in element or '@' in element:
-                    print("I'm here![3]")
                     cyrillic_letters = sum(1 for char in element if char.isalpha() and not char.isascii())
                     if cyrillic_letters == 0:
-                        print("I'm here![4]")
                         for i, item in enumerate(element):
                             if item == ' ':
-                                element = element[i+1:]
+                                element = element[i + 1:]
                                 break
                         filtered_text.append(element)
         return ' '.join(filtered_text)
@@ -123,6 +128,7 @@ def sign_in_vk_1():
 
     return driver
 
+
 # функция для ввода кода
 def sign_in_vk_2(driver, code):
     auth_code = driver.find_element(By.XPATH, "//input[@name = 'otp']")
@@ -165,12 +171,14 @@ def get_link(driver, title, author):
         song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
         return f'Возможно, это она: {song_link}'
 
+
 # для тестирования
 if __name__ == '__main__':
-    path = '/home/lyumos/imgs4'
+    path = '/home/lyumos/model_test'
     for filename in os.listdir(path):
         file_path = os.path.join(path, filename)
         if os.path.isfile(file_path):
-            title_img_path, author_img = crop_img(file_path, 4)
-            title = recognize_text(title_img_path, 4)
-            print(title)
+            print(filename, define_img_type(file_path))
+            # title_img_path, author_img = crop_img(file_path, 4)
+            # title = recognize_text(title_img_path, 4)
+            # print(title)
