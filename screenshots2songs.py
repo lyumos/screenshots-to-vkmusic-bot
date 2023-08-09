@@ -32,16 +32,13 @@ def define_img_type(img_path: str) -> int:
 
 # функция для обрезки скриншота
 def crop_img(img_path: str, img_type: int) -> tuple[str, str]:
-    crop_pattern = {1: [[160, 140, 651, 179], [160, 180, 651, 223]],  # 1 - аудио рилс
-                    2: [[160, 510, 651, 549], [160, 550, 651, 593]],  # 2 - аудио из историй
-                    3: [[0, 650, 1242, 880], [0, 881, 1242, 931]]}  # 3 - скриншоты приложения шазам
+    crop_pattern = {1: [[160, 140, 651, 179], [160, 180, 651, 223]],
+                    2: [[160, 510, 651, 549], [160, 550, 651, 593]],
+                    3: [[0, 650, 1242, 880], [0, 881, 1242, 931]]}
     crop_coords = crop_pattern[img_type]
     with Image.open(img_path) as image:
         title_image = image.crop(crop_coords[0])
         author_image = image.crop(crop_coords[1])
-        # new_dir_path = img_path.split('.')[0][0: -3] + '/' + img_path.split('.')[0][-1]
-        # author_image_path: str = new_dir_path.split('.')[0] + 'author_cropped.' + img_path.split('.')[1]
-        # title_image_path: str = new_dir_path.split('.')[0] + 'title_cropped.' + img_path.split('.')[1]
         title_image_path: str = img_path.split('.')[0] + 'title_cropped.' + img_path.split('.')[1]
         author_image_path: str = img_path.split('.')[0] + 'author_cropped.' + img_path.split('.')[1]
         title_image.save(title_image_path, format='JPEG')
@@ -160,17 +157,19 @@ def get_link(driver, title, author):
             singer_link = song.find_elements(By.TAG_NAME, 'a')[0].get_attribute('href')
             return f'К сожалению, ссылку на песню выцепить не удалось. Но вот ссылка на исполнителя: {singer_link}'
     except IndexError:
-        search.clear()
-        time.sleep(1)
-        song_info = title
-        search.send_keys(song_info)
-        search.send_keys(Keys.RETURN)
-        time.sleep(3)
-        songs_list = driver.find_elements(By.CLASS_NAME, "audio_row__inner")
-        song = songs_list[30]
-        song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
-        return f'Возможно, это она: {song_link}'
-
+        try:
+            search.clear()
+            time.sleep(1)
+            song_info = title
+            search.send_keys(song_info)
+            search.send_keys(Keys.RETURN)
+            time.sleep(3)
+            songs_list = driver.find_elements(By.CLASS_NAME, "audio_row__inner")
+            song = songs_list[30]
+            song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
+            return f'Возможно, это она: {song_link}'
+        except IndexError:
+            return 'К сожалению, песню с таким названием найти не удалось'
 
 # для тестирования
 if __name__ == '__main__':
