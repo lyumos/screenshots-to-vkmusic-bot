@@ -169,7 +169,7 @@ def get_link(driver, title, author):
             song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
             return f'Возможно, это она: {song_link}'
         except IndexError:
-            return 'К сожалению, песню с таким названием найти не удалось'
+            return 'К сожалению, песню найти не удалось'
 
 # для тестирования
 if __name__ == '__main__':
