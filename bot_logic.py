@@ -80,14 +80,18 @@ def handle_state_five(message, driver):
         bot.send_message(message.chat.id, f'"{song_info}"')
         result = get_link(driver, title, author)
     bot.send_message(message.chat.id, result)
-    bot.send_message(message.chat.id, 'Если есть еще скриншоты - присылай. Если нет - пиши "Конец"')
+    keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    button_yes = types.KeyboardButton(text='Да')
+    button_no = types.KeyboardButton(text='Нет')
+    keyboard.add(button_yes, button_no)
+    bot.send_message(message.chat.id, 'Если есть еще скриншоты?', reply_markup=keyboard)
     bot.register_next_step_handler(message, lambda m: handle_state_six(m, driver))
 
 @bot.message_handler(content_types=['photo'], state = 6)
 def handle_state_six(message, driver):
     answer = message.text
     if message.content_type == 'text':
-        if answer == 'Конец':
+        if answer == 'Нет':
             driver.quit()
             bot.send_message(message.chat.id, 'Когда захочешь поболтать, пиши /start')
         else:
