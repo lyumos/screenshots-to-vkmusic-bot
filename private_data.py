@@ -1,7 +1,7 @@
 # файл со всеми конфиденциальными данными
-vk_login = 'LOGIN'
-vk_password = 'PASSWORD'
-vk_music_link = 'PERSONAL LINK'
 bot_token = 'TOKEN'
-permitted_logins = ['LOGINS']
 imgs_path = 'LOCAL PATH'
+users_info = {
+    'TG_LOGIN1': ['VK_LOGIN', 'VK_PASSWORD', 'VKMUSIC_PERSONAL LINK'],
+    'TG_LOGIN2': ['VK_LOGIN', 'VK_PASSWORD', 'VKMUSIC_PERSONAL LINK']
+}

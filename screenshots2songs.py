@@ -7,7 +7,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 import time
-from private_data import vk_login, vk_password, vk_music_link
+from my_private_data import users_info
 from PIL import Image
 import random
 from skimage.io import imread
@@ -96,7 +96,7 @@ def recognize_text(img_path: str, img_type: int) -> str:
 
 
 # функция для входа вк до ввода кода
-def sign_in_vk_1():
+def sign_in_vk_1(user):
     options = webdriver.ChromeOptions()
     options.add_argument("user-agent=Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:84.0) Gecko/20100101 Firefox/84.0")
 
@@ -107,21 +107,21 @@ def sign_in_vk_1():
 
     login = driver.find_element(By.ID, "index_email")
     login.clear()
-    login.send_keys(vk_login)
+    login.send_keys(users_info[user][0])
     time.sleep(1)
 
     driver.find_element(By.CLASS_NAME, "FlatButton--primary").click()
     time.sleep(1)
 
     password = driver.find_element(By.XPATH, "//input[@name = 'password']")
-    password.send_keys(vk_password)
+    password.send_keys(users_info[user][1])
     password.send_keys(Keys.RETURN)
     time.sleep(3)
 
     button1 = driver.find_element(By.XPATH,
                                   "//button[@class='vkuiButton vkuiButton--sz-l vkuiButton--lvl-tertiary vkuiButton--clr-accent vkuiButton--aln-center vkuiButton--sizeY-compact vkuiButton--stretched vkuiTappable vkuiTappable--sizeX-regular vkuiTappable--hasHover vkuiTappable--hasActive vkuiTappable--mouse']")
     ActionChains(driver).move_to_element(button1).click().perform()
-    time.sleep(3)
+    # time.sleep(3)
 
     return driver
 
@@ -136,11 +136,11 @@ def sign_in_vk_2(driver, code):
 
 
 # функция для получения ссылки на первую песню из поиска
-def get_link(driver, title, author):
+def get_link(driver, user, title, author):
     ActionChains(driver).key_down(Keys.CONTROL).send_keys('t').key_up(Keys.CONTROL).perform()
     driver.switch_to.window(driver.window_handles[-1])
     time.sleep(1)
-    driver.get(vk_music_link)
+    driver.get(users_info[user][2])
     time.sleep(2)
     search = driver.find_element(By.XPATH, "//input[@class = 'ui_search_field _field']")
     song_info = title + ' ' + author
@@ -167,7 +167,11 @@ def get_link(driver, title, author):
             songs_list = driver.find_elements(By.CLASS_NAME, "audio_row__inner")
             song = songs_list[30]
             song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
-            return f'Возможно, это она: {song_link}'
+            if len(song_link) != 0:
+                return f'Возможно, это она: {song_link}'
+            else:
+                singer_link = song.find_elements(By.TAG_NAME, 'a')[0].get_attribute('href')
+                return f'К сожалению, ссылку на песню выцепить не удалось. Но вот ссылка на исполнителя: {singer_link}'
         except IndexError:
             return 'К сожалению, песню найти не удалось'
 
