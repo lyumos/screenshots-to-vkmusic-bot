@@ -7,7 +7,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 import time
-from my_private_data import users_info
+from users_data import users_info
 from PIL import Image
 import random
 from skimage.io import imread
@@ -20,19 +20,18 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 # функция для распознавания типа скриншота
 def define_img_type(img_path: str) -> int:
-    categories = [1, 2, 3, 4]
-    img_model = joblib.load('img_model.p')
+    categories = [1, 2, 3, 4] #1-песня из Reels, 2-песня из Stories, 3-песня из приложения Shazam, 4-песня из комментариев
+    img_model = joblib.load('types_recognition_model.p')
     img = imread(img_path)
     img_resized = resize(img, (150, 150, 3))
-    l = [img_resized.flatten()]
-    img_type = categories[img_model.predict(l)[0]]
-    print(img_type)
+    final_img = [img_resized.flatten()]
+    img_type = categories[img_model.predict(final_img)[0]]
     return img_type
 
 
 # функция для обрезки скриншота
 def crop_img(img_path: str, img_type: int) -> tuple[str, str]:
-    crop_pattern = {1: [[160, 140, 651, 179], [160, 180, 651, 223]],
+    crop_pattern = {1: [[160, 140, 651, 179], [160, 180, 651, 223]], #возможно их нужно будет изменить
                     2: [[160, 510, 651, 549], [160, 550, 651, 593]],
                     3: [[0, 650, 1242, 880], [0, 881, 1242, 931]]}
     crop_coords = crop_pattern[img_type]
@@ -121,7 +120,6 @@ def sign_in_vk_1(user):
     button1 = driver.find_element(By.XPATH,
                                   "//button[@class='vkuiButton vkuiButton--sz-l vkuiButton--lvl-tertiary vkuiButton--clr-accent vkuiButton--aln-center vkuiButton--sizeY-compact vkuiButton--stretched vkuiTappable vkuiTappable--sizeX-regular vkuiTappable--hasHover vkuiTappable--hasActive vkuiTappable--mouse']")
     ActionChains(driver).move_to_element(button1).click().perform()
-    # time.sleep(3)
 
     return driver
 
@@ -174,14 +172,3 @@ def get_link(driver, user, title, author):
                 return f'К сожалению, ссылку на песню выцепить не удалось. Но вот ссылка на исполнителя: {singer_link}'
         except IndexError:
             return 'К сожалению, песню найти не удалось'
-
-# для тестирования
-if __name__ == '__main__':
-    path = '/home/lyumos/model_test'
-    for filename in os.listdir(path):
-        file_path = os.path.join(path, filename)
-        if os.path.isfile(file_path):
-            print(filename, define_img_type(file_path))
-            # title_img_path, author_img = crop_img(file_path, 4)
-            # title = recognize_text(title_img_path, 4)
-            # print(title)
