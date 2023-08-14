@@ -6,60 +6,45 @@ from telegram.ext import CallbackContext
 from telebot import TeleBot, types
 from telebot.types import Message
 from screenshots2songs import sign_in_vk_1, sign_in_vk_2, recognize_text, get_link, crop_img, define_img_type
-from users_data import bot_token, imgs_path, users_info
+from my_private_data import bot_token, imgs_path, users_info
+import emoji
 
 bot = telebot.TeleBot(bot_token)
 
 
-# обработчик команды /start
 @bot.message_handler(commands=['start'])
-def start(message):
-    bot.send_message(message.chat.id, 'Бот создан для личного пользования')
-    handle_state_one(message)
-
-
-# обработчик ввода логина
-@bot.message_handler(func=lambda message: True, state=1)
-def handle_state_one(message: Message):
-    bot.send_message(message.chat.id, 'Введите свой логин')
-    bot.register_next_step_handler(message, lambda m: handle_state_two(m))
-
-
-# обработчик логина
-@bot.message_handler(func=lambda message: True, state=2)
-def handle_state_two(message: Message):
-    login = message.text
-    if login in users_info.keys():
-        bot.send_message(message.chat.id, f'Добро пожаловать {login}!\n ')
-        handle_state_three(message, login)
+def start(message: Message):
+    user = message.json['from']['username']
+    if user in users_info.keys():
+        bot.send_message(message.chat.id, f'Привет, {user}! {emoji.emojize(":sparkles:")}')
+        handle_state_one(message, user)
     else:
-        bot.send_message(message.chat.id, 'К сожалению, у вас нет доступа')
-        bot.register_next_step_handler(message, lambda m: handle_state_two(m))
+        bot.send_message(message.chat.id, 'В доступе отказано')
+        bot.send_message(message.chat.id, f'{emoji.emojize(":disappointed_face:")}')
 
 
-# обработчик для инициализации вкхода вк
-@bot.message_handler(func=lambda message: True, state=3)
-def handle_state_three(message, login):
-    bot.send_message(message.chat.id, 'Захожу в ВК..')
-    driver = sign_in_vk_1(login)
-    bot.send_message(message.chat.id, 'Для продолжения введи код от ВК')
-    bot.register_next_step_handler(message, lambda m: handle_state_four(m, driver, login))
+@bot.message_handler(func=lambda message: True, state=1)
+def handle_state_one(message, user):
+    bot.send_message(message.chat.id, 'Захожу в ВК')
+    bot.send_message(message.chat.id, users_info[user][-1])
+    driver = sign_in_vk_1(user)
+    bot.send_message(message.chat.id, 'Введи код')
+    bot.register_next_step_handler(message, lambda m: handle_state_two(m, driver, user))
 
 
 # обработчик ввода кода
-@bot.message_handler(func=lambda message: True, state=4)
-def handle_state_four(message, driver, login):
+@bot.message_handler(func=lambda message: True, state=2)
+def handle_state_two(message, driver, user):
     code = message.text
     driver = sign_in_vk_2(driver, code)
-    bot.send_message(message.chat.id, 'Отлично! Аутентификация завершена')
-    bot.send_message(message.chat.id, 'Пришли скриншот')
-    bot.register_next_step_handler(message, lambda m: handle_state_five(m, driver, login))
+    bot.send_message(message.chat.id, 'Готово! Пришли скриншот')
+    bot.register_next_step_handler(message, lambda m: handle_state_three(m, driver, user))
 
 
-# обработчик скриншотов
-@bot.message_handler(content_types=['photo'], state=5)
-def handle_state_five(message, driver, login):
+@bot.message_handler(content_types=['photo'], state=3)
+def handle_state_three(message, driver, user):
     bot.send_message(message.chat.id, 'Скриншот принят')
+    bot.send_message(message.chat.id, f'{emoji.emojize(":magnifying_glass_tilted_left:")}')
     image_id = message.photo[-1].file_id
     image_info = bot.get_file(image_id)
     image_path = image_info.file_path
@@ -73,36 +58,38 @@ def handle_state_five(message, driver, login):
     if img_type == 4:
         song_info = recognize_text(abs_path, img_type)
         bot.send_message(message.chat.id, f'"{song_info}"')
-        result = get_link(driver, login, song_info, '')
+        result = get_link(driver, user, song_info, '')
     else:
         title_img_path, author_img_path = crop_img(abs_path, img_type)
         title = recognize_text(title_img_path, img_type)
         author = recognize_text(author_img_path, img_type)
         song_info = title + ' ' + author
-        bot.send_message(message.chat.id, f'"{song_info}"')
-        result = get_link(driver, login, title, author)
+        bot.send_message(message.chat.id, f'{song_info}')
+        result = get_link(driver, user, title, author)
     bot.send_message(message.chat.id, result)
     keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
     button_yes = types.KeyboardButton(text='Да')
     button_no = types.KeyboardButton(text='Нет')
     keyboard.add(button_yes, button_no)
     bot.send_message(message.chat.id, 'Есть ли есть еще скриншоты?', reply_markup=keyboard)
-    bot.register_next_step_handler(message, lambda m: handle_state_six(m, driver, login))
+    bot.register_next_step_handler(message, lambda m: handle_state_four(m, driver, user))
 
 
-# обработчик выбора пользователя
-@bot.message_handler(content_types=['photo'], state=6)
-def handle_state_six(message, driver, login):
+@bot.message_handler(content_types=['photo'], state=4)
+def handle_state_four(message, driver, user):
     answer = message.text
     if message.content_type == 'text':
         if answer == 'Нет':
             driver.quit()
-            bot.send_message(message.chat.id, 'Когда захочешь поболтать, пиши /start')
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+            start_button = types.KeyboardButton('/start')
+            markup.add(start_button)
+            bot.send_message(message.chat.id, f'Окей, до встречи! {emoji.emojize(":waving_hand:")}', reply_markup=markup)
         else:
             bot.send_message(message.chat.id, 'Пришли скриншот')
-            bot.register_next_step_handler(message, lambda m: handle_state_five(m, driver, login))
+            bot.register_next_step_handler(message, lambda m: handle_state_three(m, driver, user))
     else:
-        handle_state_five(message, driver, login)
+        handle_state_three(message, driver, user)
 
 
 if __name__ == '__main__':

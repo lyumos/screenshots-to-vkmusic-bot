@@ -7,12 +7,13 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 import time
-from users_data import users_info
+from my_private_data import users_info
 from PIL import Image
 import random
 from skimage.io import imread
 from skimage.transform import resize
 import joblib
+import emoji
 
 # Обработка ведется при помощи CPU, а не GPU
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
@@ -150,10 +151,9 @@ def get_link(driver, user, title, author):
         song = songs_list[30]
         song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
         if len(song_link) != 0:
-            return f'Вот ссылка на песню со скриншота: {song_link}'
+            return f'Вот ссылка {emoji.emojize(":kiss_mark:")} \n{song_link}'
         else:
-            singer_link = song.find_elements(By.TAG_NAME, 'a')[0].get_attribute('href')
-            return f'К сожалению, ссылку на песню выцепить не удалось. Но вот ссылка на исполнителя: {singer_link}'
+            return f'ВК не отдает ссылку {emoji.emojize(":clown_face:")} \nПопробуй поискать cам: {users_info[user][2]}'
     except IndexError:
         try:
             search.clear()
@@ -166,9 +166,8 @@ def get_link(driver, user, title, author):
             song = songs_list[30]
             song_link = song.find_elements(By.TAG_NAME, 'a')[-1].get_attribute('href')
             if len(song_link) != 0:
-                return f'Возможно, это она: {song_link}'
+                return f'Возможно, это она {emoji.emojize(":crossed_fingers:")} \n{song_link}'
             else:
-                singer_link = song.find_elements(By.TAG_NAME, 'a')[0].get_attribute('href')
-                return f'К сожалению, ссылку на песню выцепить не удалось. Но вот ссылка на исполнителя: {singer_link}'
+                return f'ВК не отдает ссылку {emoji.emojize(":clown_face:")} \nПопробуй поискать cам: {users_info[user][2]}'
         except IndexError:
-            return 'К сожалению, песню найти не удалось'
+            return f'Песня не нашлась совсем {emoji.emojize(":disappointed_face:")}'
